@@ -1,9 +1,12 @@
 import java.util.concurrent.TimeUnit;
+import java.io.BufferedWriter;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.io.InputStream;
 import java.util.Scanner;
 
@@ -17,7 +20,7 @@ class MCServerManager {
 
         say("Starting MCServerManager utility...");
         
-        TestServer.start_in_thread();
+        TestServer.startInThread();
 
         Scanner input = new Scanner(System.in);
 
@@ -25,20 +28,30 @@ class MCServerManager {
         while(!exit) 
         {
             System.out.print("[MCSM] <- ");
-            switch (input.nextLine())
+            String line = input.nextLine();
+            String[] params = line.split(" ");
+
+            switch (params[0])
             {
                 case "exit":
                     exit = true;
                     break;
                 case "status":
-                say(TestServer.status());
+                    say(TestServer.status());
+                    break;
+                case "command":
+                    break;
+                case "test":
+                    TestServer.command("say testing213!!!");
                     break;
                 default:
                 say("That command is not recognized! Try exit or status.");
             }
         }
 
-        TestServer.stop_thread();
+        TestServer.command("say shutting down!");
+        TestServer.command("stop");
+        TestServer.stopThread();
 
         input.close();
         say("MCServerManager utility closed.");
@@ -52,6 +65,7 @@ class MCServerManager {
     public static class MCServer implements Runnable
     {
         private Thread _thread;
+        private BufferedWriter _buffWriter;
         private boolean _stopThread;
 
         private StringBuilder _statusString;
@@ -65,16 +79,38 @@ class MCServerManager {
             _ram = String.valueOf(ram);
         }
 
-        public void start_in_thread()
+        public void startInThread()
         {
             _thread = new Thread(TestServer);
             _stopThread = false;
             _thread.start();
         }
 
-        public void stop_thread()
+        public void stopThread()
         {
             _stopThread = true;
+
+            try 
+            {
+                _thread.join();
+            }
+            catch (InterruptedException interptEx) 
+            {
+                say(interptEx.toString());
+            }
+        }
+
+        public void command(String command) 
+        {
+            try
+            {
+                _buffWriter.write(command + "\n");
+                _buffWriter.flush();
+            }
+            catch (InterruptedException interptEx) 
+            {
+                say(interptEx.toString());
+            }
         }
 
         public String status()
@@ -119,10 +155,9 @@ class MCServerManager {
 
                 p = pb.start();
 
-                InputStream pIn = p.getInputStream();
-                OutputStream pOut = p.getOutputStream();
+                _buffWriter = new BufferedWriter(new OutputStreamWriter(p.getOutputStream()));
 
-                BufferedReader reader = new BufferedReader(new InputStreamReader(pIn));
+                BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
                 _statusString = new StringBuilder();
 
                 // Print all current output lines

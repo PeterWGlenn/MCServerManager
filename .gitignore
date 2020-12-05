@@ -1,0 +1,7 @@
+## Java Binaries
+*.class
+
+## MC Server Non-Essentials
+*.json
+*.gz
+*.log

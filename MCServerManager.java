@@ -1,3 +1,4 @@
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.io.BufferedWriter;
 import java.io.InputStreamReader;
@@ -8,53 +9,96 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.Scanner;
 
 class MCServerManager {
 
-    private static MCServer TestServer;
+    private static MCServer TestServer1 = new MCServer("TestServer1", 1);
+    private static MCServer TestServer2 = new MCServer("TestServer2", 1);
+
+    private static List<MCServer> Servers;
 
     public static void main(String args[]) 
     {
-        TestServer = new MCServer("TestServer", 1);
+        Servers = Arrays.asList(TestServer1, TestServer2);
 
         say("Starting MCServerManager utility...");
         
-        TestServer.startInThread();
+        startServers();
 
         Scanner input = new Scanner(System.in);
 
         boolean exit = false;
         while(!exit) 
         {
-            System.out.print("[MCSM] <- ");
             String line = input.nextLine();
             String[] params = line.split(" ");
 
-            switch (params[0])
+            if (params.length > 0) 
             {
-                case "exit":
-                    exit = true;
-                    break;
-                case "status":
-                    say(TestServer.status());
-                    break;
-                case "command":
-                    break;
-                case "test":
-                    TestServer.command("say testing213!!!");
-                    break;
-                default:
-                say("That command is not recognized! Try exit or status.");
+                switch (params[0])
+                {
+                    case "exit":
+                        exit = true;
+                        break;
+                    case "restartAll":
+                        stopServers();
+                        startServers();
+                        break;
+                    case "list":
+                        String serverList = "";
+                        for (MCServer server : Servers)
+                        {
+                            serverList += server.folder() + " ";
+                        }
+                        say("SERVERS: " + serverList);
+                        break;
+                    case "status":
+                        for (MCServer server : Servers)
+                        {
+                            if (params.length == 2 && server.folder().equals(params[1]))
+                                say(server.status());
+                        }
+                        break;
+                    case "command":
+                        for (MCServer server : Servers)
+                        {
+                            if (params.length >= 3 && server.folder().equals(params[1]))
+                            {
+                                String com = "";
+                                for (int i = 2; i < params.length; i++)
+                                    com += params[i] + " ";
+                                server.command(com);
+                            }
+                        }
+                        break;
+                    default:
+                    say("That command is not recognized! Try exit or status.");
+                }
             }
         }
 
-        TestServer.command("say shutting down!");
-        TestServer.command("stop");
-        TestServer.stopThread();
+        stopServers();
 
         input.close();
         say("MCServerManager utility closed.");
+    }
+
+    private static void startServers()
+    {
+        for (MCServer server : Servers)
+            server.startInThread();
+    }
+
+    private static void stopServers()
+    {
+        for (MCServer server : Servers)
+        {
+            server.command("say shutting down!");
+            server.command("stop");
+            server.stopThread();
+        }
     }
 
     private static void say(String s)
@@ -79,9 +123,14 @@ class MCServerManager {
             _ram = String.valueOf(ram);
         }
 
+        public String folder()
+        {
+            return _folder;
+        }
+
         public void startInThread()
         {
-            _thread = new Thread(TestServer);
+            _thread = new Thread(this);
             _stopThread = false;
             _thread.start();
         }
@@ -107,9 +156,9 @@ class MCServerManager {
                 _buffWriter.write(command + "\n");
                 _buffWriter.flush();
             }
-            catch (InterruptedException interptEx) 
+            catch (IOException iOEx) 
             {
-                say(interptEx.toString());
+                say(iOEx.toString());
             }
         }
 
@@ -159,6 +208,8 @@ class MCServerManager {
 
                 BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
                 _statusString = new StringBuilder();
+
+                say("Starting server in folder " + _folder + ".");
 
                 // Print all current output lines
                 String currLine;

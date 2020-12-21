@@ -46,6 +46,11 @@ class MCServerManager {
                         stopServers();
                         startServers();
                         break;
+                    case "backupAndRestartAll":
+                        stopServers();
+                        backupServers();
+                        startServers();
+                        break;
                     case "list":
                         String serverList = "";
                         for (MCServer server : Servers)
@@ -74,7 +79,7 @@ class MCServerManager {
                         }
                         break;
                     default:
-                    say("That command is not recognized! Valid commands: exit, restartAll, list, status [server], command [server] [command]");
+                    say("That command is not recognized! Valid commands: exit, restartAll, backupAndRestartAll, list, status [server], command [server] [command]");
                 }
             }
         }
@@ -99,6 +104,17 @@ class MCServerManager {
             server.command("stop");
             server.stopThread();
         }
+    }
+
+    private static void backupServers()
+    {
+        say("starting backups...");
+        for (MCServer server : Servers)
+        {
+            say("starting backup for " + server.folder() + "...");
+            say("finished backup for " + server.folder() + "!");
+        }
+        say("finished backups!");
     }
 
     private static void say(String s)

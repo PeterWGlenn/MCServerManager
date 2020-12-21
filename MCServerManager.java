@@ -74,7 +74,7 @@ class MCServerManager {
                         }
                         break;
                     default:
-                    say("That command is not recognized! Try exit or status.");
+                    say("That command is not recognized! Valid commands: exit, restartAll, list, status [server], command [server] [command]");
                 }
             }
         }
